@@ -800,7 +800,7 @@ public:
             __cntrl_ = std::__shared_new_block<__shared_ptr_pointer<_Ptr, _Dp>>(__r.get(), std::move(__r.get_deleter()));
         }
         __ptr_ = __r.get();
-        if constexpr (is_same_v<_Ptr, _Yp*>) {
+        if constexpr (is_pointer_v<_Ptr>) {
             __enable_weak_this(__r.get());
         }
         __r.release();
