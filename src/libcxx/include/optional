@@ -140,7 +140,7 @@ struct __optional_storage_base : __optional_destruct_base<_Tp> {
     _EZCXX_CONSTEXPR_SINCE_CXX20 void __assign_from(_That&& __opt) {
         if (this->__engaged_ == __opt.has_value()) {
             if (this->__engaged_) {
-                this->__val_ = *std::forward<_That>(__opt);
+                **this = *std::forward<_That>(__opt);
             }
         } else if (this->__engaged_) {
             this->reset();
@@ -427,7 +427,7 @@ public:
     template <class _Up = remove_cv_t<_Tp>, enable_if_t<__value_assignable_v<_Up>, int> = 0>
     _EZCXX_CONSTEXPR_SINCE_CXX20 optional& operator=(_Up&& __v) {
         if (this->has_value()) {
-            this->__val_ = std::forward<_Up>(__v);
+            **this = std::forward<_Up>(__v);
         } else {
             this->__construct(std::forward<_Up>(__v));
         }

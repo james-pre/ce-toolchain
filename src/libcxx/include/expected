@@ -220,6 +220,11 @@ class expected {
     _EZCXX_INLINE constexpr explicit expected(__expected_invoke_tag, unexpect_t, _Fp&& __f, _Args&&... __args)
         : __unex_(std::__invoke(std::forward<_Fp>(__f), std::forward<_Args>(__args)...)), __has_val_(false) {}
 
+    template <class... _Args>
+    constexpr void __construct_val(_Args&&... __args) {
+        std::construct_at(const_cast<remove_cv_t<_Tp>*>(std::addressof(__val_)), std::forward<_Args>(__args)...);
+    }
+
     constexpr void __destroy() noexcept {
         if (__has_val_) {
             std::destroy_at(std::addressof(__val_));
@@ -284,7 +289,7 @@ class expected {
                 std::destroy_at(std::addressof(__rhs.__unex_));
                 std::construct_at(std::addressof(__rhs.__val_), std::move(__tmp));
             } _EZCXX_CATCH_ALL {
-                std::construct_at(std::addressof(__val_), std::move(__tmp));
+                __construct_val(std::move(__tmp));
                 _EZCXX_RETHROW;
             }
         }
@@ -367,7 +372,7 @@ public:
                  !(is_trivially_copy_constructible_v<_Tp> && is_trivially_copy_constructible_v<_Err>))
         : __has_val_(__rhs.__has_val_) {
         if (__has_val_) {
-            std::construct_at(std::addressof(__val_), __rhs.__val_);
+            __construct_val(__rhs.__val_);
         } else {
             std::construct_at(std::addressof(__unex_), __rhs.__unex_);
         }
@@ -383,33 +388,33 @@ public:
                  !(is_trivially_move_constructible_v<_Tp> && is_trivially_move_constructible_v<_Err>))
         : __has_val_(__rhs.__has_val_) {
         if (__has_val_) {
-            std::construct_at(std::addressof(__val_), std::move(__rhs.__val_));
+            __construct_val(std::move(__rhs.__val_));
         } else {
             std::construct_at(std::addressof(__unex_), std::move(__rhs.__unex_));
         }
     }
 
     template <class _Up, class _Gp>
-        requires __can_convert_v<_Up, _Gp, const _Up&, const _Gp&>
+        requires(!(is_same_v<_Tp, _Up> && is_same_v<_Err, _Gp>)) && __can_convert_v<_Up, _Gp, const _Up&, const _Gp&>
     constexpr explicit(!is_convertible_v<const _Up&, _Tp> || !is_convertible_v<const _Gp&, _Err>)
     expected(const expected<_Up, _Gp>& __rhs)
     noexcept(is_nothrow_constructible_v<_Tp, const _Up&> && is_nothrow_constructible_v<_Err, const _Gp&>)
         : __has_val_(__rhs.__has_val_) {
         if (__has_val_) {
-            std::construct_at(std::addressof(__val_), __rhs.__val_);
+            __construct_val(__rhs.__val_);
         } else {
             std::construct_at(std::addressof(__unex_), __rhs.__unex_);
         }
     }
 
     template <class _Up, class _Gp>
-        requires __can_convert_v<_Up, _Gp, _Up, _Gp>
+        requires(!(is_same_v<_Tp, _Up> && is_same_v<_Err, _Gp>)) && __can_convert_v<_Up, _Gp, _Up, _Gp>
     constexpr explicit(!is_convertible_v<_Up, _Tp> || !is_convertible_v<_Gp, _Err>)
     expected(expected<_Up, _Gp>&& __rhs)
     noexcept(is_nothrow_constructible_v<_Tp, _Up> && is_nothrow_constructible_v<_Err, _Gp>)
         : __has_val_(__rhs.__has_val_) {
         if (__has_val_) {
-            std::construct_at(std::addressof(__val_), std::move(__rhs.__val_));
+            __construct_val(std::move(__rhs.__val_));
         } else {
             std::construct_at(std::addressof(__unex_), std::move(__rhs.__unex_));
         }
@@ -548,7 +553,7 @@ public:
         requires is_nothrow_constructible_v<_Tp, _Args...>
     constexpr _Tp& emplace(_Args&&... __args) noexcept {
         __destroy();
-        std::construct_at(std::addressof(__val_), std::forward<_Args>(__args)...);
+        __construct_val(std::forward<_Args>(__args)...);
         __has_val_ = true;
         return __val_;
     }
@@ -557,7 +562,7 @@ public:
         requires is_nothrow_constructible_v<_Tp, initializer_list<_Up>&, _Args...>
     constexpr _Tp& emplace(initializer_list<_Up> __il, _Args&&... __args) noexcept {
         __destroy();
-        std::construct_at(std::addressof(__val_), __il, std::forward<_Args>(__args)...);
+        __construct_val(__il, std::forward<_Args>(__args)...);
         __has_val_ = true;
         return __val_;
     }
